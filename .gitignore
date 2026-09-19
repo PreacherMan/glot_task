@@ -1,0 +1,11 @@
+.env
+venv/
+__pycache__/
+*.pyc
+translated.pcm
+translated.wav
+hello.pcm
+*.m4a
+test-report.xml
+.pytest_cache/
+.DS_Store
