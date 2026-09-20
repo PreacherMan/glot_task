@@ -38,9 +38,14 @@ class TranslationSession(ABC):
 
     @abstractmethod
     async def send_audio(self, chunk: bytes) -> None:
-        """Feed a chunk of raw source audio in. Any wire encoding a
-        particular provider needs (base64, framing, compression) is
-        that provider's concern, not the caller's."""
+        """Feed a chunk of raw source audio in: 24 kHz PCM16 mono.
+
+        The format is fixed by convention rather than negotiated,
+        because one provider defines it today. A provider needing
+        something else transcodes internally — as with any wire
+        encoding (base64, framing, compression), that is the
+        provider's concern, not the caller's.
+        """
 
     @abstractmethod
     def events(self) -> AsyncIterator[TranslationEvent]:
