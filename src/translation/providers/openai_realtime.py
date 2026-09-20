@@ -8,6 +8,7 @@ import websockets
 from ..session import EventType, TranslationEvent, TranslationSession
 
 REALTIME_TRANSLATIONS_URL = "wss://api.openai.com/v1/realtime/translations?model=gpt-realtime-translate"
+CLOSE_DRAIN_TIMEOUT = 5.0  # seconds to let pending output arrive after session.close
 
 
 class OpenAIRealtimeSession(TranslationSession):
@@ -28,6 +29,7 @@ class OpenAIRealtimeSession(TranslationSession):
         self._ws = None
         self._queue: "asyncio.Queue[TranslationEvent]" = asyncio.Queue()
         self._closed = False
+        self._receive_task: "asyncio.Task | None" = None
 
     async def start(self) -> None:
         self._ws = await websockets.connect(
@@ -41,7 +43,9 @@ class OpenAIRealtimeSession(TranslationSession):
             "type": "session.update",
             "session": {"audio": {"output": {"language": self.target_lang}}},
         }))
-        asyncio.create_task(self._receive_loop())
+        # Handle is held, not fire-and-forget: close() needs to be able
+        # to await it draining and cancel it if it overruns.
+        self._receive_task = asyncio.create_task(self._receive_loop())
 
     async def send_audio(self, chunk: bytes) -> None:
         # Raw PCM16 in; base64 is this provider's wire format, not the
@@ -86,5 +90,19 @@ class OpenAIRealtimeSession(TranslationSession):
     async def close(self) -> None:
         # Per the docs: send session.close and keep reading until
         # session.closed arrives, so translated output still draining
-        # from the session isn't dropped.
-        await self._ws.send(json.dumps({"type": "session.close"}))
+        # from the session isn't dropped. Hence the receive loop is
+        # given a bounded chance to finish on its own before being
+        # cancelled, rather than torn down immediately.
+        try:
+            await self._ws.send(json.dumps({"type": "session.close"}))
+        except Exception:
+            pass  # server may have closed the connection already
+
+        if self._receive_task:
+            try:
+                await asyncio.wait_for(self._receive_task, timeout=CLOSE_DRAIN_TIMEOUT)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                self._receive_task.cancel()
+
+        await self._ws.close()
+        self._closed = True

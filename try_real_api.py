@@ -52,10 +52,7 @@ async def main(pcm_path: str):
             await asyncio.sleep(0.05)  # rough pacing, not a real-time clock
 
     print("\nFinished sending audio. Closing session...")
-    try:
-        await session.close()
-    except Exception:
-        pass  # connection may already be closed by the server
+    await session.close()
     await asyncio.wait_for(consumer_task, timeout=10)
 
     if output_chunks:
