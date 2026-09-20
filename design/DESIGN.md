@@ -98,20 +98,20 @@ JUnit-XML report (`pytest tests/ -v --junitxml=test-report.xml`).
 **Outer HTTP/WebSocket API layer: described, not built.** FastAPI is
 the concrete choice, and the request/response shapes are sketched
 above. It isn't implemented, because it's real but largely
-boilerplate — the brief's own evaluation criteria (abstraction
-quality, module boundaries, provider-agnosticism) live entirely in
-the `translation/` package already built and tested, not in the
-outer wiring.
+boilerplate — a thin translation from HTTP into the registry, with no
+architectural judgement in it that isn't already made underneath.
+Abstraction quality, module boundaries and provider-agnosticism all
+live in the `translation/` package, so that is where the time went.
 
 ## Trade-offs
 
-The brief is explicit about preferring a tight, correctly-scoped
-skeleton over broad, polished-looking coverage with no real point of
-view behind it. That governed every choice here — two use cases, both
-fully composed and tested, rather than a wider spread of half-built
-ones. The second (`Broadcast`) earns its place specifically because it
-proves the primitive generalises; a third would not have added an
-argument the first two don't already make.
+Scope was the main constraint: a tight skeleton with sharp boundaries
+is worth more here than broad coverage with no point of view behind
+it. That governed every choice — two use cases, both fully composed
+and tested, rather than a wider spread of half-built ones. The second
+(`Broadcast`) earns its place specifically because it proves the
+primitive generalises; a third would not have added an argument the
+first two don't already make.
 
 Deliberately not built, each for a specific reason rather than a lack
 of time:
