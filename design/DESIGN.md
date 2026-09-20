@@ -105,13 +105,21 @@ outer wiring.
 
 ## Trade-offs
 
-The brief is explicit about preferring a tight, correctly-scoped skeleton over broad, polished-looking coverage with no real point of view behind it. That governed every choice here — width was deliberately resisted in favour of one correctly-composed use case (conversation), proven in running code, over several half-built ones.
+The brief is explicit about preferring a tight, correctly-scoped
+skeleton over broad, polished-looking coverage with no real point of
+view behind it. That governed every choice here — two use cases, both
+fully composed and tested, rather than a wider spread of half-built
+ones. The second (`Broadcast`) earns its place specifically because it
+proves the primitive generalises; a third would not have added an
+argument the first two don't already make.
 
 Deliberately not built, each for a specific reason rather than a lack
 of time:
-- **Auth / user registration** — needed before any real customer
-  could use this, but orthogonal to the translation-domain problem
-  actually being evaluated.
+- **Auth / tenant isolation** — the skeleton is single-tenant by
+  construction: there is no tenant concept anywhere in it, rather than
+  a half-built one. Both arrive together (see "What I'd build next"),
+  since a tenant-scoped registry is meaningless until the tenant id is
+  trustworthy.
 - **Persistence** — `ConversationRegistry` already handles session
   lifecycle (create, look up, end) entirely in memory; a real database
   only becomes necessary once state needs to survive a restart or be
@@ -134,10 +142,17 @@ of time:
    `TranslationSession` interface; nothing else in the codebase
    changes.
 
-2. **Auth + user registration.** Real credentials, issued per
-   customer, checked at the outer API layer. Expands the platform
-   from "runs on my machine" to "usable by an external team" — the
-   literal precondition for calling this a platform at all.
+2. **Auth + tenant isolation.** Real credentials, issued per
+   customer, checked at the outer API layer — tenant identity derived
+   from the credential, never from a field the caller supplies. These
+   two land together or not at all: `ConversationRegistry.get()`
+   currently returns any conversation to anyone holding the id, which
+   is correct for a single-tenant skeleton and wrong the moment there
+   are two customers. The lookup becomes tenant-scoped, so another
+   tenant's conversation cannot be returned rather than being checked
+   for after the fact. Process-level separation (shared pool by
+   default, dedicated deployment where compliance demands it) is a
+   deployment decision on top, not a code change.
 
 3. **Group-room orchestration.** A `Room` class alongside
    `Conversation`, managing `N` speakers × `M` target languages,

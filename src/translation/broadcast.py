@@ -1,6 +1,6 @@
 from typing import List
 
-from .conversation import SessionFactory
+from .session import SessionFactory
 
 
 class Broadcast:

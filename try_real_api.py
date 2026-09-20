@@ -8,7 +8,6 @@ as an environment variable.
     python3 try_real_api.py hello.pcm
 """
 import asyncio
-import base64
 import sys
 
 from dotenv import load_dotenv
@@ -34,14 +33,14 @@ async def main(pcm_path: str):
             if event.type.value == "transcript_delta":
                 print(f"  transcript: {event.data}", end="", flush=True)
             elif event.type.value == "audio_delta":
-                output_chunks.append(base64.b64decode(event.data))
+                output_chunks.append(event.data)
 
     consumer_task = asyncio.create_task(consume_events())
 
     with open(pcm_path, "rb") as f:
         while chunk := f.read(CHUNK_SIZE):
             try:
-                await session.send_audio(base64.b64encode(chunk))
+                await session.send_audio(chunk)
             except Exception as e:
                 # The server can close the session normally (e.g. voice-
                 # activity detection deciding the utterance is complete)

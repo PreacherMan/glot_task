@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import AsyncIterator, Union
+from typing import AsyncIterator, Callable, Union
 
 
 class EventType(Enum):
@@ -12,7 +12,7 @@ class EventType(Enum):
 @dataclass
 class TranslationEvent:
     type: EventType
-    data: Union[bytes, str]  # audio bytes for AUDIO_DELTA, text for TRANSCRIPT_DELTA
+    data: Union[bytes, str]  # raw audio for AUDIO_DELTA, text for TRANSCRIPT_DELTA
 
 
 class TranslationSession(ABC):
@@ -38,7 +38,9 @@ class TranslationSession(ABC):
 
     @abstractmethod
     async def send_audio(self, chunk: bytes) -> None:
-        """Feed a chunk of source audio into the session."""
+        """Feed a chunk of raw source audio in. Any wire encoding a
+        particular provider needs (base64, framing, compression) is
+        that provider's concern, not the caller's."""
 
     @abstractmethod
     def events(self) -> AsyncIterator[TranslationEvent]:
@@ -47,3 +49,9 @@ class TranslationSession(ABC):
     @abstractmethod
     async def close(self) -> None:
         """Gracefully end the session, flushing any pending output."""
+
+
+# A factory, not a concrete provider — use cases take one of these and
+# never import a provider themselves. Whatever factory the caller
+# passes in decides which provider actually runs underneath.
+SessionFactory = Callable[[str, str], TranslationSession]

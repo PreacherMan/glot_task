@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 
@@ -43,9 +44,12 @@ class OpenAIRealtimeSession(TranslationSession):
         asyncio.create_task(self._receive_loop())
 
     async def send_audio(self, chunk: bytes) -> None:
+        # Raw PCM16 in; base64 is this provider's wire format, not the
+        # interface's business, so the encoding happens here rather
+        # than in the caller.
         await self._ws.send(json.dumps({
             "type": "session.input_audio_buffer.append",
-            "audio": chunk.decode("ascii"),  # caller is responsible for base64-encoding PCM16 first
+            "audio": base64.b64encode(chunk).decode("ascii"),
         }))
 
     async def _receive_loop(self) -> None:
@@ -53,7 +57,10 @@ class OpenAIRealtimeSession(TranslationSession):
             async for raw in self._ws:
                 event = json.loads(raw)
                 if event["type"] == "session.output_audio.delta":
-                    await self._queue.put(TranslationEvent(EventType.AUDIO_DELTA, event["delta"]))
+                    # Decoded here for the same reason: AUDIO_DELTA
+                    # carries raw audio bytes, never this provider's
+                    # base64 encoding of them.
+                    await self._queue.put(TranslationEvent(EventType.AUDIO_DELTA, base64.b64decode(event["delta"])))
                 elif event["type"] == "session.output_transcript.delta":
                     await self._queue.put(TranslationEvent(EventType.TRANSCRIPT_DELTA, event["delta"]))
                 elif event["type"] == "session.closed":

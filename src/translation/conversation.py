@@ -1,12 +1,4 @@
-from typing import Callable
-
-from .session import TranslationSession
-
-# A factory, not a concrete provider — Conversation never imports
-# FakeTranslationSession or OpenAIRealtimeSession directly. Whatever
-# factory the caller passes in decides which provider actually runs
-# underneath; this file has no way to know or care.
-SessionFactory = Callable[[str, str], TranslationSession]
+from .session import SessionFactory
 
 
 class Conversation:

@@ -1,6 +1,7 @@
 from typing import Optional
 
-from .conversation import Conversation, SessionFactory
+from .conversation import Conversation
+from .session import SessionFactory
 
 
 class ConversationRegistry:
